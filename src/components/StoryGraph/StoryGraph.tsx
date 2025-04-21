@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useRef } from 'react';
 import {
   ReactFlow,
@@ -25,7 +24,6 @@ import { NodeFactory } from './NodeFactory';
 import { Button } from '@/components/ui/button';
 import { Save, Trash } from 'lucide-react';
 
-// Custom node components mapping
 const nodeTypes = {
   idea: IdeaNode,
   prompt: PromptNode,
@@ -43,7 +41,6 @@ export function StoryGraph() {
 
   const onConnect = useCallback(
     (params) => {
-      // Custom edge with animated line and arrow marker
       const edge = {
         ...params,
         animated: true,
@@ -63,22 +60,35 @@ export function StoryGraph() {
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  // Generate a unique ID
+  const sendDataToNextNodes = useCallback((fromNodeId, dataToSend) => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        const isTarget = edges.some(
+          (edge) => edge.source === fromNodeId && node.id === edge.target
+        );
+        if (isTarget) {
+          return {
+            ...node,
+            data: { 
+              ...node.data,
+              receivedData: dataToSend,
+            },
+          };
+        }
+        return node;
+      })
+    );
+  }, [edges, setNodes]);
+
   const getId = () => `node_${Math.random().toString(36).substr(2, 9)}`;
 
-  // Add new node at the center of the viewport
   const addNode = useCallback(
     (type) => {
       if (!reactFlowInstance) return;
-
-      const position = screenToFlowPosition({ 
-        x: window.innerWidth / 2, 
-        y: window.innerHeight / 2 
-      });
-
-      // Add specific properties based on node type
+      const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+      const nodeId = getId();
       let nodeData = {};
-      
+
       switch (type) {
         case 'idea':
           nodeData = {
@@ -93,9 +103,18 @@ export function StoryGraph() {
                 })
               );
             },
+            sendDataForward: () => {
+              setNodes((nds) => {
+                const node = nds.find(n => n.id === nodeId);
+                if (!node) return nds;
+                sendDataToNextNodes(nodeId, { content: node.data.content });
+                return nds;
+              });
+            },
+            receivedData: undefined,
           };
           break;
-          
+
         case 'prompt':
           nodeData = {
             content: '',
@@ -110,14 +129,21 @@ export function StoryGraph() {
               );
             },
             onGenerate: () => {
-              // In a real implementation, this would trigger AI generation
               console.log('Generate from prompt:', nodeId);
-              // Placeholder for AI integration
               alert('AI generation would happen here in a complete implementation');
             },
+            sendDataForward: () => {
+              setNodes((nds) => {
+                const node = nds.find(n => n.id === nodeId);
+                if (!node) return nds;
+                sendDataToNextNodes(nodeId, { content: node.data.content });
+                return nds;
+              });
+            },
+            receivedData: undefined,
           };
           break;
-          
+
         case 'development':
           nodeData = {
             elementType: 'character',
@@ -153,9 +179,18 @@ export function StoryGraph() {
                 })
               );
             },
+            sendDataForward: () => {
+              setNodes((nds) => {
+                const node = nds.find(n => n.id === nodeId);
+                if (!node) return nds;
+                sendDataToNextNodes(nodeId, { elementType: node.data.elementType, title: node.data.title, content: node.data.content });
+                return nds;
+              });
+            },
+            receivedData: undefined,
           };
           break;
-          
+
         case 'structure':
           nodeData = {
             structureType: 'sequence',
@@ -191,9 +226,18 @@ export function StoryGraph() {
                 })
               );
             },
+            sendDataForward: () => {
+              setNodes((nds) => {
+                const node = nds.find(n => n.id === nodeId);
+                if (!node) return nds;
+                sendDataToNextNodes(nodeId, { structureType: node.data.structureType, title: node.data.title, description: node.data.description });
+                return nds;
+              });
+            },
+            receivedData: undefined,
           };
           break;
-          
+
         case 'output':
           nodeData = {
             length: 'medium',
@@ -230,16 +274,14 @@ export function StoryGraph() {
               );
             },
             onGenerate: () => {
-              // In a real implementation, this would generate the final story
               console.log('Generate final story');
-              // Placeholder for story generation
               alert('Story generation would happen here in a complete implementation');
             },
+            receivedData: undefined,
           };
           break;
       }
 
-      const nodeId = getId();
       const newNode = {
         id: nodeId,
         type,
@@ -249,10 +291,9 @@ export function StoryGraph() {
 
       setNodes((nds) => [...nds, newNode]);
     },
-    [reactFlowInstance, screenToFlowPosition, setNodes]
+    [reactFlowInstance, screenToFlowPosition, setNodes, sendDataToNextNodes]
   );
 
-  // Delete selected nodes and connected edges
   const deleteSelected = useCallback(() => {
     setNodes((nds) => nds.filter((node) => !node.selected));
     setEdges((eds) => eds.filter((edge) => {
@@ -262,7 +303,6 @@ export function StoryGraph() {
     }));
   }, [nodes, setNodes, setEdges]);
 
-  // Save the current graph (placeholder for real save functionality)
   const saveGraph = useCallback(() => {
     if (reactFlowInstance) {
       const flow = reactFlowInstance.toObject();
@@ -271,7 +311,6 @@ export function StoryGraph() {
     }
   }, [reactFlowInstance]);
 
-  // Load saved graph on initial render (if available)
   const loadSavedGraph = useCallback(() => {
     const savedFlow = localStorage.getItem('storyGraphSave');
     if (savedFlow) {
