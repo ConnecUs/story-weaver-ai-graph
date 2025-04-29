@@ -31,7 +31,7 @@ export function NodeContextMenu({ children, nodeTypesList, onAddNode, contextMen
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger>
+      <ContextMenuTrigger asChild>
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent>

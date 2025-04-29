@@ -1,7 +1,6 @@
 
 import { ReactFlowProvider } from "@xyflow/react";
 import { StoryGraph } from "@/components/StoryGraph/StoryGraph";
-import { StoryPreview } from "@/components/StoryOutput/StoryPreview";
 import { Button } from "@/components/ui/button";
 import { BookOpen } from "lucide-react";
 import { useState } from "react";
@@ -32,12 +31,6 @@ const Index = () => {
           <StoryGraph />
         </ReactFlowProvider>
       </div>
-      
-      {/* This preview will be opened from the header button */}
-      <StoryPreview 
-        isOpen={isHeaderPreviewOpen} 
-        onClose={() => setIsHeaderPreviewOpen(false)} 
-      />
     </div>
   );
 };

@@ -26,6 +26,7 @@ import { NodeFactory } from './NodeFactory';
 import { GraphPanel } from './components/GraphPanel';
 import { NodeContextMenu } from './components/NodeContextMenu';
 import { nodeTypesList } from './constants/nodeTypes';
+import { StoryPreview } from '../StoryOutput/StoryPreview';
 
 const nodeTypes = {
   idea: IdeaNode,
@@ -56,7 +57,13 @@ export function StoryGraph() {
     getId
   } = useGraphState();
   
-  const { addNode, deleteSelected } = useNodeManagement({ 
+  const { 
+    addNode, 
+    deleteSelected, 
+    isStoryPreviewOpen,
+    setIsStoryPreviewOpen,
+    generatedStoryContent
+  } = useNodeManagement({ 
     nodes, 
     setNodes, 
     setEdges, 
@@ -102,37 +109,46 @@ export function StoryGraph() {
         onAddNode={addNode}
         contextMenuPosition={contextMenuPosition}
       >
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onInit={setReactFlowInstance}
-          onDragOver={onDragOver}
-          onContextMenu={handleContextMenu}
-          nodeTypes={nodeTypes}
-          fitView
-          snapToGrid
-          proOptions={{ hideAttribution: true }}
-        >
-          <Controls />
-          <MiniMap 
-            nodeStrokeWidth={3}
-            zoomable
-            pannable
-          />
-          <Background color="#f0f0f0" gap={12} size={1} />
-          
-          <GraphPanel 
-            deleteSelected={deleteSelected}
-            saveGraph={saveGraph}
-            loadSavedGraph={loadSavedGraph}
-          />
-          
-          <NodeFactory onAddNode={addNode} />
-        </ReactFlow>
+        <div className="w-full h-full">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onInit={setReactFlowInstance}
+            onDragOver={onDragOver}
+            onContextMenu={handleContextMenu}
+            nodeTypes={nodeTypes}
+            fitView
+            snapToGrid
+            proOptions={{ hideAttribution: true }}
+          >
+            <Controls />
+            <MiniMap 
+              nodeStrokeWidth={3}
+              zoomable
+              pannable
+            />
+            <Background color="#f0f0f0" gap={12} size={1} />
+            
+            <GraphPanel 
+              deleteSelected={deleteSelected}
+              saveGraph={saveGraph}
+              loadSavedGraph={loadSavedGraph}
+            />
+            
+            <NodeFactory onAddNode={addNode} />
+          </ReactFlow>
+        </div>
       </NodeContextMenu>
+      
+      {/* Story preview modal */}
+      <StoryPreview 
+        isOpen={isStoryPreviewOpen} 
+        onClose={() => setIsStoryPreviewOpen(false)}
+        storyContent={generatedStoryContent}
+      />
     </div>
   );
 }

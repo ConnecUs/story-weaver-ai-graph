@@ -32,12 +32,24 @@ export function useGraphState() {
   );
 
   const sendDataToNextNodes = useCallback((fromNodeId, dataToSend) => {
+    // Debugging
+    console.log(`Sending data from node ${fromNodeId}:`, dataToSend);
+    
+    // Find all edges that start from this node
+    const connectedEdges = edges.filter(edge => edge.source === fromNodeId);
+    console.log(`Found ${connectedEdges.length} connected edges`);
+    
+    if (connectedEdges.length === 0) {
+      console.log('No connected nodes to send data to');
+    }
+    
     setNodes((nds) =>
       nds.map((node) => {
-        const isTarget = edges.some(
-          (edge) => edge.source === fromNodeId && node.id === edge.target
-        );
+        // Check if this node is a target of any edge starting from fromNodeId
+        const isTarget = connectedEdges.some(edge => node.id === edge.target);
+        
         if (isTarget) {
+          console.log(`Sending data to node ${node.id}`);
           return {
             ...node,
             data: { 
