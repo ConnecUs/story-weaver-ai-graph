@@ -3,12 +3,43 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { X } from "lucide-react";
+import { X, Download, Copy, Check } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
 
-export function StoryPreview({ isOpen, onClose }) {
+export function StoryPreview({ isOpen, onClose, storyContent = null }) {
   const [storyText, setStoryText] = useState(
-    "Your story will appear here once generated from the Output Node. Connect your story elements and use the Generate button in an Output Node to create your story."
+    storyContent || "Your story will appear here once generated from the Output Node. Connect your story elements and use the Generate button in an Output Node to create your story."
   );
+  const [isCopied, setIsCopied] = useState(false);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(storyText);
+    setIsCopied(true);
+    toast.success("Story copied to clipboard");
+    
+    setTimeout(() => {
+      setIsCopied(false);
+    }, 2000);
+  };
+
+  const handleExport = () => {
+    // Create a Blob with the story text
+    const blob = new Blob([storyText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create a link element and trigger download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'generated-story.txt';
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success("Story exported successfully");
+  };
 
   if (!isOpen) return null;
 
@@ -31,7 +62,18 @@ export function StoryPreview({ isOpen, onClose }) {
         </div>
         <div className="p-4 border-t flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>Close</Button>
-          <Button>Export Story</Button>
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-1"
+            onClick={copyToClipboard}
+          >
+            {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {isCopied ? "Copied" : "Copy"}
+          </Button>
+          <Button onClick={handleExport} className="flex items-center gap-1">
+            <Download className="h-4 w-4" />
+            Export Story
+          </Button>
         </div>
       </Card>
     </div>

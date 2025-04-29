@@ -1,13 +1,14 @@
 
-import { useState } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { StoryGraph } from "@/components/StoryGraph/StoryGraph";
 import { StoryPreview } from "@/components/StoryOutput/StoryPreview";
 import { Button } from "@/components/ui/button";
 import { BookOpen } from "lucide-react";
+import { useState } from "react";
 
 const Index = () => {
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  // This state is now just for the header button
+  const [isHeaderPreviewOpen, setIsHeaderPreviewOpen] = useState(false);
 
   return (
     <div className="h-screen w-full overflow-hidden flex flex-col">
@@ -19,7 +20,7 @@ const Index = () => {
         <Button 
           variant="outline" 
           className="flex items-center gap-2"
-          onClick={() => setIsPreviewOpen(true)}
+          onClick={() => setIsHeaderPreviewOpen(true)}
         >
           <BookOpen className="h-4 w-4" /> 
           View Story
@@ -32,9 +33,10 @@ const Index = () => {
         </ReactFlowProvider>
       </div>
       
+      {/* This preview will be opened from the header button */}
       <StoryPreview 
-        isOpen={isPreviewOpen} 
-        onClose={() => setIsPreviewOpen(false)} 
+        isOpen={isHeaderPreviewOpen} 
+        onClose={() => setIsHeaderPreviewOpen(false)} 
       />
     </div>
   );

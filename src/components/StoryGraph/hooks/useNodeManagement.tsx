@@ -1,9 +1,12 @@
-
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useReactFlow } from '@xyflow/react';
+import { useAiGeneration } from '../AiIntegration';
 
 export function useNodeManagement({ nodes, setNodes, setEdges, reactFlowInstance, sendDataToNextNodes, getId }) {
   const { screenToFlowPosition } = useReactFlow();
+  const { generateStory } = useAiGeneration();
+  const [isStoryPreviewOpen, setIsStoryPreviewOpen] = useState(false);
+  const [generatedStoryContent, setGeneratedStoryContent] = useState("");
 
   const addNode = useCallback(
     (type, position = null) => {
@@ -202,9 +205,27 @@ export function useNodeManagement({ nodes, setNodes, setEdges, reactFlowInstance
                 })
               );
             },
-            onGenerate: () => {
+            onGenerate: async () => {
               console.log('Generate final story');
-              alert('Story generation would happen here in a complete implementation');
+              
+              // Collect all story elements from connected nodes
+              const node = nodes.find(n => n.id === nodeId);
+              if (!node || !node.data.receivedData) {
+                alert('Please connect this output node to story elements first');
+                return;
+              }
+              
+              // Get settings from the output node
+              const settings = {
+                length: node.data.length,
+                creativity: node.data.creativity,
+                tone: node.data.tone
+              };
+              
+              // Generate story using the AI integration
+              const generatedStory = await generateStory(node.data.receivedData, settings);
+              setGeneratedStoryContent(generatedStory);
+              setIsStoryPreviewOpen(true);
             },
             receivedData: undefined,
           };
@@ -220,7 +241,7 @@ export function useNodeManagement({ nodes, setNodes, setEdges, reactFlowInstance
 
       setNodes((nds) => [...nds, newNode]);
     },
-    [reactFlowInstance, screenToFlowPosition, setNodes, sendDataToNextNodes, getId]
+    [reactFlowInstance, screenToFlowPosition, setNodes, sendDataToNextNodes, getId, nodes, generateStory, setIsStoryPreviewOpen]
   );
 
   const deleteSelected = useCallback(() => {
@@ -234,6 +255,9 @@ export function useNodeManagement({ nodes, setNodes, setEdges, reactFlowInstance
 
   return {
     addNode,
-    deleteSelected
+    deleteSelected,
+    isStoryPreviewOpen,
+    setIsStoryPreviewOpen,
+    generatedStoryContent
   };
 }
