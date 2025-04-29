@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useRef } from 'react';
 import {
   ReactFlow,
@@ -23,6 +24,12 @@ import OutputNode from './NodeTypes/OutputNode';
 import { NodeFactory } from './NodeFactory';
 import { Button } from '@/components/ui/button';
 import { Save, Trash } from 'lucide-react';
+import { 
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger
+} from "@/components/ui/context-menu";
 
 const nodeTypes = {
   idea: IdeaNode,
@@ -38,6 +45,7 @@ export function StoryGraph() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const { screenToFlowPosition } = useReactFlow();
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
 
   const onConnect = useCallback(
     (params) => {
@@ -83,9 +91,15 @@ export function StoryGraph() {
   const getId = () => `node_${Math.random().toString(36).substr(2, 9)}`;
 
   const addNode = useCallback(
-    (type) => {
+    (type, position = null) => {
       if (!reactFlowInstance) return;
-      const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+      
+      // If position is not provided, use the center of the viewport
+      const nodePosition = position || screenToFlowPosition({ 
+        x: window.innerWidth / 2, 
+        y: window.innerHeight / 2 
+      });
+      
       const nodeId = getId();
       let nodeData = {};
 
@@ -285,7 +299,7 @@ export function StoryGraph() {
       const newNode = {
         id: nodeId,
         type,
-        position,
+        position: nodePosition,
         data: nodeData,
       };
 
@@ -320,57 +334,135 @@ export function StoryGraph() {
     }
   }, [setNodes, setEdges]);
 
+  const handleContextMenu = useCallback(
+    (event) => {
+      // Prevent default context menu
+      event.preventDefault();
+      
+      if (reactFlowInstance) {
+        // Convert the mouse position to flow position
+        const position = screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY
+        });
+        
+        // Store the position where we want to add the node
+        setContextMenuPosition(position);
+      }
+    },
+    [reactFlowInstance, screenToFlowPosition]
+  );
+
+  const handleAddNodeFromContextMenu = useCallback(
+    (type) => {
+      addNode(type, contextMenuPosition);
+    },
+    [addNode, contextMenuPosition]
+  );
+
+  const nodeTypesList = [
+    {
+      type: 'idea',
+      name: 'Idea Node',
+      description: 'Start with a story concept',
+      color: 'bg-blue-100'
+    },
+    {
+      type: 'prompt',
+      name: 'Prompt Node',
+      description: 'Request AI assistance',
+      color: 'bg-purple-100'
+    },
+    {
+      type: 'development',
+      name: 'Development Node',
+      description: 'Develop story elements',
+      color: 'bg-green-100'
+    },
+    {
+      type: 'structure',
+      name: 'Structure Node',
+      description: 'Organize story flow',
+      color: 'bg-amber-100'
+    },
+    {
+      type: 'output',
+      name: 'Output Node',
+      description: 'Generate the final story',
+      color: 'bg-red-100'
+    }
+  ];
+
   return (
     <div className="w-full h-screen" ref={reactFlowWrapper}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onInit={setReactFlowInstance}
-        onDragOver={onDragOver}
-        nodeTypes={nodeTypes}
-        fitView
-        snapToGrid
-        proOptions={{ hideAttribution: true }}
-      >
-        <Controls />
-        <MiniMap 
-          nodeStrokeWidth={3}
-          zoomable
-          pannable
-        />
-        <Background color="#f0f0f0" gap={12} size={1} />
-        
-        <Panel position="top-right" className="flex gap-2">
-          <Button 
-            variant="destructive" 
-            size="sm" 
-            onClick={deleteSelected}
-            className="flex items-center"
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onInit={setReactFlowInstance}
+            onDragOver={onDragOver}
+            onContextMenu={handleContextMenu}
+            nodeTypes={nodeTypes}
+            fitView
+            snapToGrid
+            proOptions={{ hideAttribution: true }}
           >
-            <Trash className="h-4 w-4 mr-1" /> Delete Selected
-          </Button>
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            onClick={saveGraph}
-            className="flex items-center"
-          >
-            <Save className="h-4 w-4 mr-1" /> Save Graph
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={loadSavedGraph}
-          >
-            Load Saved
-          </Button>
-        </Panel>
-        
-        <NodeFactory onAddNode={addNode} />
-      </ReactFlow>
+            <Controls />
+            <MiniMap 
+              nodeStrokeWidth={3}
+              zoomable
+              pannable
+            />
+            <Background color="#f0f0f0" gap={12} size={1} />
+            
+            <Panel position="top-right" className="flex gap-2">
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={deleteSelected}
+                className="flex items-center"
+              >
+                <Trash className="h-4 w-4 mr-1" /> Delete Selected
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={saveGraph}
+                className="flex items-center"
+              >
+                <Save className="h-4 w-4 mr-1" /> Save Graph
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={loadSavedGraph}
+              >
+                Load Saved
+              </Button>
+            </Panel>
+            
+            <NodeFactory onAddNode={addNode} />
+          </ReactFlow>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          {nodeTypesList.map((node) => (
+            <ContextMenuItem 
+              key={node.type} 
+              onClick={() => handleAddNodeFromContextMenu(node.type)}
+              className={`cursor-pointer ${node.color}`}
+            >
+              <div>
+                <div className="font-medium">{node.name}</div>
+                <div className="text-xs text-muted-foreground">{node.description}</div>
+              </div>
+            </ContextMenuItem>
+          ))}
+        </ContextMenuContent>
+      </ContextMenu>
     </div>
   );
 }
