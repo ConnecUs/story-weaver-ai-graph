@@ -1,5 +1,5 @@
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -39,6 +39,7 @@ const nodeTypes = {
 export function StoryGraph() {
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
+  const [hoveredNode, setHoveredNode] = useState(null);
   
   // Custom hooks
   const {
@@ -85,22 +86,53 @@ export function StoryGraph() {
 
   const handleContextMenu = useCallback(
     (event) => {
-      // Prevent default context menu
       event.preventDefault();
+      console.log('Context menu triggered at:', event.clientX, event.clientY);
       
       if (reactFlowInstance) {
-        // Convert the mouse position to flow position
         const position = screenToFlowPosition({
           x: event.clientX,
           y: event.clientY
         });
         
-        // Store the position where we want to add the node
+        console.log('Setting context menu position to:', position);
         setContextMenuPosition(position);
+        
+        // Check if we're hovering over a node
+        const rect = reactFlowWrapper.current.getBoundingClientRect();
+        const flowPosition = screenToFlowPosition({
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top
+        });
+        
+        const nodeAtPosition = nodes.find(node => {
+          const nodeRect = {
+            x: node.position.x,
+            y: node.position.y,
+            width: 200, // approximate node width
+            height: 100 // approximate node height
+          };
+          
+          return flowPosition.x >= nodeRect.x && 
+                 flowPosition.x <= nodeRect.x + nodeRect.width &&
+                 flowPosition.y >= nodeRect.y && 
+                 flowPosition.y <= nodeRect.y + nodeRect.height;
+        });
+        
+        setHoveredNode(nodeAtPosition);
+        console.log('Hovered node:', nodeAtPosition?.type || 'none');
       }
     },
-    [reactFlowInstance, screenToFlowPosition, setContextMenuPosition]
+    [reactFlowInstance, screenToFlowPosition, setContextMenuPosition, nodes]
   );
+
+  const onNodeMouseEnter = useCallback((event, node) => {
+    setHoveredNode(node);
+  }, []);
+
+  const onNodeMouseLeave = useCallback(() => {
+    setHoveredNode(null);
+  }, []);
 
   return (
     <div className="w-full h-screen" ref={reactFlowWrapper}>
@@ -108,6 +140,8 @@ export function StoryGraph() {
         nodeTypesList={nodeTypesList}
         onAddNode={addNode}
         contextMenuPosition={contextMenuPosition}
+        hoveredNode={hoveredNode}
+        edges={edges}
       >
         <div className="w-full h-full">
           <ReactFlow
@@ -119,6 +153,8 @@ export function StoryGraph() {
             onInit={setReactFlowInstance}
             onDragOver={onDragOver}
             onContextMenu={handleContextMenu}
+            onNodeMouseEnter={onNodeMouseEnter}
+            onNodeMouseLeave={onNodeMouseLeave}
             nodeTypes={nodeTypes}
             fitView
             snapToGrid
@@ -143,7 +179,6 @@ export function StoryGraph() {
         </div>
       </NodeContextMenu>
       
-      {/* Story preview modal */}
       <StoryPreview 
         isOpen={isStoryPreviewOpen} 
         onClose={() => setIsStoryPreviewOpen(false)}
